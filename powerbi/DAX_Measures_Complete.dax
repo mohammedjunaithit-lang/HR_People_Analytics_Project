@@ -1,0 +1,98 @@
+// ============================================================
+// HR PEOPLE ANALYTICS — COMPLETE DAX MEASURES LIBRARY
+// Copy each measure into Power BI Desktop > New Measure
+// ============================================================
+
+// ── HEADCOUNT ────────────────────────────────────────────────
+Total Employees = COUNTROWS(Fact_Employee)
+
+Active Employees = 
+CALCULATE(COUNTROWS(Fact_Employee), Fact_Employee[Attrition] = "No")
+
+New Hires This Year = 
+CALCULATE(
+    COUNTROWS(Fact_Employee),
+    YEAR(Fact_Employee[Hire_Date]) = YEAR(TODAY())
+)
+
+// ── ATTRITION ─────────────────────────────────────────────────
+Attrited Count = 
+CALCULATE(COUNTROWS(Fact_Employee), Fact_Employee[Attrition] = "Yes")
+
+Attrition Rate % = 
+DIVIDE([Attrited Count], [Total Employees], 0)
+
+Rolling 12M Attrition = 
+CALCULATE(
+    [Attrition Rate %],
+    DATESINPERIOD(Dim_Date[Date], LASTDATE(Dim_Date[Date]), -12, MONTH)
+)
+
+Voluntary Attrition Rate = 
+DIVIDE(
+    CALCULATE(COUNTROWS(Fact_Employee), 
+              Fact_Employee[Attrition] = "Yes",
+              Fact_Employee[Performance_Rating] >= 3),
+    [Total Employees], 0
+)
+
+// ── TENURE & EXPERIENCE ───────────────────────────────────────
+Avg Tenure Years = 
+AVERAGEX(
+    Fact_Employee,
+    DATEDIFF(
+        Fact_Employee[Hire_Date],
+        IF(ISBLANK(Fact_Employee[Exit_Date]), TODAY(), Fact_Employee[Exit_Date]),
+        DAY
+    ) / 365.25
+)
+
+Avg Years Experience = AVERAGE(Fact_Employee[Years_Experience])
+
+// ── PERFORMANCE ───────────────────────────────────────────────
+Avg Performance Rating = AVERAGE(Fact_Employee[Performance_Rating])
+
+High Performers % = 
+DIVIDE(
+    CALCULATE(COUNTROWS(Fact_Employee), Fact_Employee[Performance_Rating] >= 4),
+    [Total Employees], 0
+)
+
+Low Performers % = 
+DIVIDE(
+    CALCULATE(COUNTROWS(Fact_Employee), Fact_Employee[Performance_Rating] <= 2),
+    [Total Employees], 0
+)
+
+// ── COMPENSATION ──────────────────────────────────────────────
+Avg Salary INR = AVERAGE(Fact_Employee[Salary_INR])
+
+Total Payroll Monthly = SUM(Fact_Payroll[Net_Pay_INR])
+
+Cost Per Hire = 
+DIVIDE(SUM(Dim_Recruitment[Cost_Per_Hire_INR]), SUM(Dim_Recruitment[Hired]), 0)
+
+Avg Time To Fill = AVERAGE(Dim_Recruitment[Time_To_Fill_Days])
+
+// ── DIVERSITY ─────────────────────────────────────────────────
+Female Ratio % = 
+DIVIDE(
+    CALCULATE(COUNTROWS(Fact_Employee), Fact_Employee[Gender] = "Female"),
+    [Total Employees], 0
+)
+
+Gender Parity Index = 
+VAR Female = CALCULATE(COUNTROWS(Fact_Employee), Fact_Employee[Gender] = "Female")
+VAR Male   = CALCULATE(COUNTROWS(Fact_Employee), Fact_Employee[Gender] = "Male")
+RETURN DIVIDE(Female, Male, 0)
+
+// ── ENGAGEMENT ────────────────────────────────────────────────
+Avg Satisfaction Score = AVERAGE(Fact_Employee[Satisfaction_Score])
+
+Avg Training Hours = AVERAGE(Fact_Employee[Training_Hours])
+
+Overtime % = 
+DIVIDE(
+    CALCULATE(COUNTROWS(Fact_Employee), Fact_Employee[Overtime_Flag] = "Yes"),
+    [Total Employees], 0
+)
